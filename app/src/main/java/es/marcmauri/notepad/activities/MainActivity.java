@@ -1,5 +1,6 @@
 package es.marcmauri.notepad.activities;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import es.marcmauri.notepad.DetailActivity;
 import es.marcmauri.notepad.R;
 import es.marcmauri.notepad.adapters.NoteAdapter;
 import es.marcmauri.notepad.models.Note;
@@ -31,6 +33,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     // FAB to Add note
     private FloatingActionButton fab_addNote;
+
+    private int count = 0;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +63,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private List<Note> getMockData() {
+        this.count = 5;
         return new ArrayList<Note>() {{
             add(new Note("Titulo 1", "Contenido de la nota 1", new Date().getTime(), new Date().getTime()));
             add(new Note("Titulo 2", "Contenido de la nota 2", new Date().getTime(), new Date().getTime()));
@@ -84,6 +90,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         this.fab_addNote = findViewById(R.id.fab_addNote);
     }
 
+    private void addNote(int newPos) {
+        this.notes.add(new Note("Nueva nota #" + newPos, "Contenido de la nota #" + newPos, new Date().getTime(), new Date().getTime()));
+        this.noteAdapter.notifyDataSetChanged();
+        this.listView.smoothScrollToPosition(this.notes.size()-1);
+    }
+
     private void removeNote(int position) {
         // Eliminamos la nota por la posicion en la que se encuentra
         this.notes.remove(position);
@@ -97,13 +109,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     //FAB listener
     @Override
     public void onClick(View v) {
-        Toast.makeText(this, "New note is coming", Toast.LENGTH_SHORT).show();
+        addNote(++count);
     }
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
         // Se hace click en la nota notes[position]
-        Toast.makeText(this, "Seleccionada nota en POS " + position, Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(this, DetailActivity.class);
+        intent.putExtra("title", this.notes.get(position).getTitle());
+        intent.putExtra("content", this.notes.get(position).getContent());
+        startActivity(intent);
     }
 
     @Override

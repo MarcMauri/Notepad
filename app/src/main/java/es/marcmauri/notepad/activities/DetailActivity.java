@@ -1,10 +1,12 @@
-package es.marcmauri.notepad;
+package es.marcmauri.notepad.activities;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import es.marcmauri.notepad.R;
 
 public class DetailActivity extends AppCompatActivity {
 

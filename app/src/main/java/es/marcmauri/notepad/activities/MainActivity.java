@@ -17,10 +17,11 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import es.marcmauri.notepad.DetailActivity;
 import es.marcmauri.notepad.R;
 import es.marcmauri.notepad.adapters.NoteAdapter;
 import es.marcmauri.notepad.models.Note;
+import io.realm.Realm;
+import io.realm.RealmResults;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, AdapterView.OnItemClickListener {
 
@@ -29,7 +30,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private NoteAdapter noteAdapter;
 
     // Lista de nuestro modelo, nota
-    private List<Note> notes;
+    private Realm realm;
+    private RealmResults<Note> notes;
 
     // FAB to Add note
     private FloatingActionButton fab_addNote;
@@ -45,8 +47,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setToolbar();
         bindUI();
 
-        // Recogemos datos de prueba
-        notes = getMockData();
+        // Databases
+        realm = Realm.getDefaultInstance();
+        notes = getAllNotes();
+        count = notes.size();
 
         // Adjuntando el metodo click para el FAB
         this.fab_addNote.setOnClickListener(this);
@@ -60,17 +64,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         // Registramos el context menu para las vistas
         registerForContextMenu(this.listView);
-    }
-
-    private List<Note> getMockData() {
-        this.count = 5;
-        return new ArrayList<Note>() {{
-            add(new Note("Titulo 1", "Contenido de la nota 1", new Date().getTime(), new Date().getTime()));
-            add(new Note("Titulo 2", "Contenido de la nota 2", new Date().getTime(), new Date().getTime()));
-            add(new Note("Titulo 3", "Contenido de la nota 3", new Date().getTime(), new Date().getTime()));
-            add(new Note("Titulo 4", "Contenido de la nota 4", new Date().getTime(), new Date().getTime()));
-            add(new Note("Titulo 5", "Contenido de la nota 5", new Date().getTime(), new Date().getTime()));
-        }};
     }
 
 
@@ -90,26 +83,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         this.fab_addNote = findViewById(R.id.fab_addNote);
     }
 
-    private void addNote(int newPos) {
-        this.notes.add(new Note("Nueva nota #" + newPos, "Contenido de la nota #" + newPos, new Date().getTime(), new Date().getTime()));
-        this.noteAdapter.notifyDataSetChanged();
-        this.listView.smoothScrollToPosition(this.notes.size()-1);
-    }
-
-    private void removeNote(int position) {
-        // Eliminamos la nota por la posicion en la que se encuentra
-        this.notes.remove(position);
-        // Notificamos al adaptador que los cambios han cambiado
-        this.noteAdapter.notifyDataSetChanged();
-    }
-
 
     // Events
 
     //FAB listener
     @Override
     public void onClick(View v) {
-        addNote(++count);
+        createNewNote(++count);
     }
 
     @Override
@@ -141,10 +121,48 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch (item.getItemId()) {
             case R.id.menu_delNote:
                 // Aqui debemos borrar la nota
-                removeNote(info.position);
+                removeNote(this.notes.get(info.position));
                 return true;
             default:
                 return super.onContextItemSelected(item);
         }
     }
+
+    @Override
+    protected void onDestroy() {
+        realm.close();
+        super.onDestroy();
+    }
+
+
+    // CRUD
+    private RealmResults<Note> getAllNotes() {
+        return realm.where(Note.class).findAll();
+    }
+
+    private void createNewNote (int newPos) {
+        try {
+            realm.beginTransaction();
+            Note _note = new Note("Nueva nota #" + newPos, "Contenido de la nota #" + newPos, new Date().getTime(), new Date().getTime());
+            realm.copyToRealm(_note);
+            realm.commitTransaction();
+            this.noteAdapter.notifyDataSetChanged();
+            this.listView.smoothScrollToPosition(this.notes.size()-1);
+        } catch (Exception e) {
+            Toast.makeText(this, "Error al crear ciudad:\n" + e.toString(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void removeNote(Note note) {
+        try {
+            realm.beginTransaction();
+            note.deleteFromRealm();
+            realm.commitTransaction();
+            Toast.makeText(this, "It has been deleted successfully!", Toast.LENGTH_SHORT).show();
+            this.noteAdapter.notifyDataSetChanged();
+        } catch (Exception e) {
+            Toast.makeText(this, "An error has been occurred. \n" + e, Toast.LENGTH_SHORT).show();
+        }
+    }
+
 }
